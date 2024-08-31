@@ -169,6 +169,8 @@ int main(void)
 	transmit_buffer[18] = (uint8_t) (raindrops_voltage & 0x00FF);
 	transmit_buffer[19] = (uint8_t) ((raindrops_voltage & 0xFF00)>>8);
 
+	HAL_UART_Transmit(&huart1,transmit_buffer,20,1000);
+
 
     /* USER CODE END WHILE */
 
