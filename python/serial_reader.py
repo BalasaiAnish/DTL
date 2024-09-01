@@ -4,6 +4,11 @@ import struct
 import csv
 from datetime import datetime
 
+with open('./data.csv', 'r', newline='') as file:
+    if len(file.read()) == 0:
+        writer = csv.writer(file)
+        writer.writerow(["Timestamp","Temperature from BMP","Pressure from BMP","Temperature from DHT11","Humidity from DHT11","Brightness","Rain"])
+
 ser = serial.Serial('/dev/ttyACM0',9600,8,'N',1)
 
 time.sleep(3)
