@@ -56,7 +56,7 @@
 
 /* External variables --------------------------------------------------------*/
 extern DMA_HandleTypeDef hdma_adc1;
-extern RTC_HandleTypeDef hrtc;
+extern LPTIM_HandleTypeDef hlptim2;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -214,17 +214,17 @@ void DMA1_Channel1_IRQHandler(void)
 }
 
 /**
-  * @brief This function handles RTC alarm interrupt through EXTI line 18.
+  * @brief This function handles LPTIM2 global interrupt.
   */
-void RTC_Alarm_IRQHandler(void)
+void LPTIM2_IRQHandler(void)
 {
-  /* USER CODE BEGIN RTC_Alarm_IRQn 0 */
+  /* USER CODE BEGIN LPTIM2_IRQn 0 */
 
-  /* USER CODE END RTC_Alarm_IRQn 0 */
-  HAL_RTC_AlarmIRQHandler(&hrtc);
-  /* USER CODE BEGIN RTC_Alarm_IRQn 1 */
+  /* USER CODE END LPTIM2_IRQn 0 */
+  HAL_LPTIM_IRQHandler(&hlptim2);
+  /* USER CODE BEGIN LPTIM2_IRQn 1 */
 
-  /* USER CODE END RTC_Alarm_IRQn 1 */
+  /* USER CODE END LPTIM2_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */

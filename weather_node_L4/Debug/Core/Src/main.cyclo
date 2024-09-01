@@ -3,10 +3,10 @@
 ../Core/Src/main.c:195:6:SystemClock_Config	4
 ../Core/Src/main.c:258:13:MX_ADC1_Init	4
 ../Core/Src/main.c:325:13:MX_I2C1_Init	4
-../Core/Src/main.c:373:13:MX_RTC_Init	5
-../Core/Src/main.c:456:13:MX_TIM2_Init	4
-../Core/Src/main.c:501:13:MX_USART1_UART_Init	2
-../Core/Src/main.c:534:13:MX_DMA_Init	1
-../Core/Src/main.c:552:13:MX_GPIO_Init	1
-../Core/Src/main.c:611:6:HAL_RTC_AlarmAEventCallback	1
-../Core/Src/main.c:622:6:Error_Handler	1
+../Core/Src/main.c:373:13:MX_LPTIM2_Init	2
+../Core/Src/main.c:407:13:MX_TIM2_Init	4
+../Core/Src/main.c:452:13:MX_USART1_UART_Init	2
+../Core/Src/main.c:485:13:MX_DMA_Init	1
+../Core/Src/main.c:503:13:MX_GPIO_Init	1
+../Core/Src/main.c:562:6:LPTimerAutoreloadMatch_Callback	1
+../Core/Src/main.c:572:6:Error_Handler	1
