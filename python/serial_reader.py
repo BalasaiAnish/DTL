@@ -3,7 +3,7 @@ import time
 import struct
 import csv
 
-ser = serial.Serial('ttyACM0',9600,8,'N',1)
+ser = serial.Serial('/dev/ttyACM0',9600,8,'N',1)
 
 time.sleep(3)
 

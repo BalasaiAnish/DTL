@@ -5,8 +5,14 @@
  *      Author: bala
  */
 
-#ifndef INC_DHT11_H_
-#define INC_DHT11_H_
+#ifndef INC_DHT_H_
+#define INC_DHT_H_
+
+#include "stm32l4xx_hal.h"
+#include "stm32l4xx_hal_gpio.h"
+#include "stm32l4xx_hal_i2c.h"
+#include "stm32l4xx_hal_tim.h"
+#include <stdbool.h>
 
 typedef enum {
 	DHT11_OK = 0,
@@ -78,5 +84,3 @@ float HAL_DHT11_ReadTemperatureF(DHT11_InitTypeDef *DHT11);
 float HAL_DHT11_ReadHumidity(DHT11_InitTypeDef *DHT11);
 
 #endif
-
-#endif /* INC_DHT11_H_ */

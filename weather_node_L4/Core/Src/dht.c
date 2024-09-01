@@ -5,7 +5,8 @@
  *      Author: bala
  */
 
-#include "dht11.h"
+#include "dht.h"
+
 #define DHT11_PIN_OUTPUT 0
 #define DHT11_PIN_INPUT 1
 #define DHT11_MAX_DATA_BITS 40

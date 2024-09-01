@@ -1,0 +1,5 @@
+../Core/Src/bmp.c:9:6:read_calibration_data	1
+../Core/Src/bmp.c:30:10:get_uncomp_temp	1
+../Core/Src/bmp.c:49:10:get_uncomp_press	1
+../Core/Src/bmp.c:79:7:get_comp_temp	1
+../Core/Src/bmp.c:88:7:get_comp_press	3

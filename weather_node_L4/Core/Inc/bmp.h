@@ -8,6 +8,13 @@
 #ifndef INC_BMP_H_
 #define INC_BMP_H_
 
+#include "stm32l4xx_hal.h"
+#include "stm32l4xx_hal_gpio.h"
+#include "stm32l4xx_hal_i2c.h"
+#include "stm32l4xx_hal_tim.h"
+#include <stdbool.h>
+#include <math.h>
+
 #define BMP_ADDR 0xEE
 #define CALIB_START_ADDR 0xAA
 
@@ -28,7 +35,7 @@ void read_calibration_data(I2C_HandleTypeDef *, bmp_calib_t *);
 
 uint16_t get_uncomp_temp(I2C_HandleTypeDef *, bmp_calib_t *);
 
-uint32_t get_uncomp_pressure(I2C_HandleTypeDef *, bmp_calib_t *);
+uint32_t get_uncomp_press(I2C_HandleTypeDef *, bmp_calib_t *);
 
 float get_comp_temp(uint16_t, bmp_calib_t *);
 
