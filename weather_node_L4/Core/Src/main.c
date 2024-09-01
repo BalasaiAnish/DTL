@@ -53,6 +53,27 @@ UART_HandleTypeDef huart1;
 /* USER CODE BEGIN PV */
 uint32_t analog_vals[2] = {0};
 uint16_t ldr_voltage=0,raindrops_voltage=0;
+
+// Buffer for transmission
+uint8_t transmit_buffer[20];
+
+// Read temperature and pressure from BMP180
+uint16_t u_temp = 0;
+uint32_t u_press = 0;
+float temp = 0.0;
+float press = 0.0;
+
+DHT11_InitTypeDef dht;
+DHT11_StatusTypeDef err;
+
+bmp_calib_t bmp_calib_data = {0};
+
+// Convert float values into byte arrays
+union
+{
+	float f_val;
+	uint8_t f_val_buffer[4];
+}temp_buffer,press_buffer,dht_temp_buffer,dht_hum_buffer;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -111,11 +132,7 @@ int main(void)
   MX_TIM2_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-  DHT11_InitTypeDef dht;
-  DHT11_StatusTypeDef err;
   HAL_DHT11_Init(&dht, GPIOA, GPIO_PIN_2, &htim2);
-
-  bmp_calib_t bmp_calib_data = {0};
   read_calibration_data(&hi2c1,&bmp_calib_data);
 
   /* USER CODE END 2 */
@@ -125,27 +142,11 @@ int main(void)
   while (1)
   {
 
-	// Read temperature and pressure from BMP180
-	uint16_t u_temp = 0;
-	uint32_t u_press = 0;
-	float temp = 0.0;
-	float press = 0.0;
-
 	u_temp = get_uncomp_temp(&hi2c1,&bmp_calib_data);
 	u_press = get_uncomp_press(&hi2c1,&bmp_calib_data);
 
 	// Read LDR and Raindrop sensor analog voltages
 	HAL_ADC_Start_DMA(&hadc1,analog_vals,2);
-
-	// Buffer for transmission
-	uint8_t transmit_buffer[20];
-
-	// Convert float values into byte arrays
-	union
-	{
-		float f_val;
-		uint8_t f_val_buffer[4];
-	}temp_buffer,press_buffer,dht_temp_buffer,dht_hum_buffer;
 
 	// Read float values
 	temp_buffer.f_val = get_comp_temp(u_temp,&bmp_calib_data);
@@ -171,6 +172,7 @@ int main(void)
 
 	HAL_UART_Transmit(&huart1,transmit_buffer,20,1000);
 
+	HAL_Delay(500);
 
     /* USER CODE END WHILE */
 
