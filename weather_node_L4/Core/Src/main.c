@@ -183,7 +183,8 @@ int main(void)
 	nrf24l01p_tx_transmit(transmit_buffer);
 
 	HAL_SuspendTick();
-	HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+	//HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+	HAL_PWR_Ex_EnterSTOP1Mode(PWR_SLEEP_ENTRY_WFI);
 
     /* USER CODE END WHILE */
 
