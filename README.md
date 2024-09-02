@@ -3,7 +3,7 @@
 ## Pinout 
 PA0 - LDR\
 PA1 - Raindrop sensor\
-PB7 - TX for FS1008A\
+PB7 - TX for FS100A\
 PA10 - SDA for BMP180\
 PA9 - SCL for BMP180\
 PA2 - Pin for DHT11
