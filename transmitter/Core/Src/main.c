@@ -23,6 +23,7 @@
 /* USER CODE BEGIN Includes */
 #include "dht.h"
 #include "bmp.h"
+#include "nrf24.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -32,7 +33,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-void radioSetup(void);
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -55,6 +56,16 @@ TIM_HandleTypeDef htim2;
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
+uint8_t txBuf[32];
+uint8_t txBufLen = 32;
+
+extern nRF24_TXResult tx_res;
+
+static const uint8_t nRF24_ADDR2[] = { 0xE7, 0x1C, 0xE6 };
+
+uint8_t radioCheck = 0;
+uint8_t txSuccess = 10;
+
 uint32_t analog_vals[2] = {0};
 uint16_t ldr_voltage=0,raindrops_voltage=0;
 
@@ -92,7 +103,7 @@ static void MX_USART1_UART_Init(void);
 static void MX_LPTIM2_Init(void);
 static void MX_SPI3_Init(void);
 /* USER CODE BEGIN PFP */
-
+void radioSetup(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -145,6 +156,11 @@ int main(void)
   HAL_DHT11_Init(&dht, GPIOA, GPIO_PIN_2, &htim2);
   read_calibration_data(&hi2c1,&bmp_calib_data);
 
+  nRF24_CE_L();
+  radioCheck = nRF24_Check();
+  radioSetup();
+  runRadio();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -180,7 +196,21 @@ int main(void)
 	transmit_buffer[18] = (uint8_t) (raindrops_voltage & 0x00FF);
 	transmit_buffer[19] = (uint8_t) ((raindrops_voltage & 0xFF00)>>8);
 
-	nRF24_TransmitPacket(transmit_buffer,transmit_buffer_len);
+	tx_res = nRF24_TransmitPacket(transmit_buffer, transmit_buffer_len);
+	switch (tx_res) {
+						case nRF24_TX_SUCCESS:
+							UART_SendStr("OK ");
+							break;
+						case nRF24_TX_TIMEOUT:
+							UART_SendStr("TIMEOUT ");
+							break;
+						case nRF24_TX_MAXRT:
+							UART_SendStr("MAX RETRANSMIT ");
+							break;
+						default:
+							UART_SendStr("ERROR ");
+							break;
+					}
 
 	//HAL_UART_Transmit(&huart1,transmit_buffer,20,1000);
 
@@ -597,11 +627,26 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 void radioSetup(void){
+	// This is simple transmitter (to multiple logic addresses):
+	//   - TX addresses and payload lengths:
+	//       'WBC', 11 bytes
+	//       '0xE7 0x1C 0xE3', 5 bytes
+	//       '0xE7 0x1C 0xE6', 32 bytes
+	//   - RF channel: 115 (2515MHz)
+	//   - data rate: 250kbps (minimum possible, to increase reception reliability)
+	//   - CRC scheme: 2 byte
+
+	// The transmitter sends a data packets to the three logic addresses without Auto-ACK (ShockBurst disabled)
+	// The payload length depends on the logic address
+
+	// Disable ShockBurst for all RX pipes
+	nRF24_DisableAA(0xFF);
+
 	// Set RF channel
-	nRF24_SetRFChannel(40);
+	nRF24_SetRFChannel(115);
 
 	// Set data rate
-	nRF24_SetDataRate(nRF24_DR_2Mbps);
+	nRF24_SetDataRate(nRF24_DR_250kbps);
 
 	// Set CRC scheme
 	nRF24_SetCRCScheme(nRF24_CRC_2byte);
@@ -609,15 +654,10 @@ void radioSetup(void){
 	// Set address width, its common for all pipes (RX and TX)
 	nRF24_SetAddrWidth(3);
 
-	// Configure RX PIPE
-	static const uint8_t nRF24_ADDR[] = {'E', 'S', 'B'};
-	nRF24_SetAddr(nRF24_PIPE1, nRF24_ADDR); // program address for pipe
-	nRF24_SetRXPipe(nRF24_PIPE1, nRF24_AA_ON, 10); // Auto-ACK: enabled, payload length: 10 bytes
-
-	// Set TX power for Auto-ACK (maximum, to ensure that transmitter will hear ACK reply)
+	// Set TX power (maximum)
 	nRF24_SetTXPower(nRF24_TXPWR_0dBm);
 
-	// Set operational mode (PRX == receiver)
+	// Set operational mode (PTX == transmitter)
 	nRF24_SetOperationalMode(nRF24_MODE_TX);
 
 	// Clear any pending IRQ flags
@@ -626,14 +666,113 @@ void radioSetup(void){
 	// Wake the transceiver
 	nRF24_SetPowerMode(nRF24_PWR_UP);
 
-	// Enable DPL
-	nRF24_SetDynamicPayloadLength(nRF24_DPL_ON);
+	// Initialize the nRF24L01 to its default state
+	nRF24_Init();
 
-	nRF24_SetPayloadWithAck(1);
-
-		// Put the transceiver to the RX mode
-	nRF24_CE_H();
 }
+
+nRF24_TXResult nRF24_TransmitPacket(uint8_t *pBuf, uint8_t length) {
+	volatile uint32_t wait = nRF24_WAIT_TIMEOUT;
+	volatile uint8_t status;
+
+	// Deassert the CE pin (in case if it still high)
+	nRF24_CE_L();
+
+	// Transfer a data from the specified buffer to the TX FIFO
+	nRF24_WritePayload(pBuf, length);
+
+	// Start a transmission by asserting CE pin (must be held at least 10us)
+	nRF24_CE_H();
+
+	// Poll the transceiver status register until one of the following flags will be set:
+	//   TX_DS  - means the packet has been transmitted
+	//   MAX_RT - means the maximum number of TX retransmits happened
+	// note: this solution is far from perfect, better to use IRQ instead of polling the status
+	do {
+		status = nRF24_GetStatus();
+		if (status & (nRF24_FLAG_TX_DS | nRF24_FLAG_MAX_RT)) {
+			break;
+		}
+	} while (wait--);
+
+	// Deassert the CE pin (Standby-II --> Standby-I)
+	nRF24_CE_L();
+
+	if (!wait) {
+		// Timeout
+		return nRF24_TX_TIMEOUT;
+	}
+
+	//UART_SendStr("[");
+	//UART_SendHex8(status);
+	//UART_SendStr("] ");
+
+	// Clear pending IRQ flags
+    nRF24_ClearIRQFlags();
+
+	if (status & nRF24_FLAG_MAX_RT) {
+		// Auto retransmit counter exceeds the programmed maximum limit (FIFO is not removed)
+		return nRF24_TX_MAXRT;
+	}
+
+	if (status & nRF24_FLAG_TX_DS) {
+		// Successful transmission
+		return nRF24_TX_SUCCESS;
+	}
+
+	// Some banana happens, a payload remains in the TX FIFO, flush it
+	nRF24_FlushTX();
+
+	return nRF24_TX_ERROR;
+}
+
+void testRadio(void) {
+	/*
+	UART_SendStr("ADDR#");
+	UART_SendInt(2);
+	*/
+
+	//nRF24_SetAddr(nRF24_PIPETX, nRF24_ADDR2);
+	txBufLen = 20;
+	uint8_t txBuf[20]={0};
+
+	// Prepare data packet
+	for (int i = 0; i < txBufLen; i++) {
+		txBuf[i] = i;
+		//if (j > 0x000000FF) j = 0;
+	}
+	/*
+	// Print a payload
+	UART_SendStr(" PAYLOAD:>");
+	UART_SendBufHex((char *)txBuf, txBufLen);
+	UART_SendStr("< ... TX: ");
+	*/
+	// Transmit a packet
+	/*
+	nRF24_TX_ERROR  = (uint8_t)0x00, // Unknown error
+	nRF24_TX_SUCCESS,                // Packet has been transmitted successfully
+	nRF24_TX_TIMEOUT,                // It was timeout during packet transmit
+	nRF24_TX_MAXRT
+	*/
+	tx_res = nRF24_TransmitPacket(txBuf, txBufLen);
+	switch (tx_res) {
+		case nRF24_TX_SUCCESS:
+			UART_SendStr("OK");
+			break;
+		case nRF24_TX_TIMEOUT:
+			UART_SendStr("TIMEOUT");
+			break;
+		case nRF24_TX_MAXRT:
+			UART_SendStr("MAX RETRANSMIT");
+			break;
+		default:
+			UART_SendStr("ERROR");
+			break;
+	}
+	UART_SendStr("\r\n");
+}
+
+
 
 void HAL_LPTIM_CompareMatchCallback(LPTIM_HandleTypeDef *hlptim)
 {

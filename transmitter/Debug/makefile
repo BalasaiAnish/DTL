@@ -60,8 +60,8 @@ all: main-build
 main-build: weather_node_L4.elf secondary-outputs
 
 # Tool invocations
-weather_node_L4.elf weather_node_L4.map: $(OBJS) $(USER_OBJS) /Users/dhruvakashyap/Documents/EL/4th\ Semester/DTL/Firmware/weather_node_L4/STM32L432KCUX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "weather_node_L4.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/Users/dhruvakashyap/Documents/EL/4th Semester/DTL/Firmware/weather_node_L4/STM32L432KCUX_FLASH.ld" --specs=nosys.specs -Wl,-Map="weather_node_L4.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+weather_node_L4.elf weather_node_L4.map: $(OBJS) $(USER_OBJS) /home/bala/Desktop/College/DTL/Code/DTL/transmitter/STM32L432KCUX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "weather_node_L4.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/home/bala/Desktop/College/DTL/Code/DTL/transmitter/STM32L432KCUX_FLASH.ld" --specs=nosys.specs -Wl,-Map="weather_node_L4.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
