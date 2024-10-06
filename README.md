@@ -1,8 +1,8 @@
 # DTL
 
 ## Pinout 
-A0 - LDR\
-A1 - Raindrop sensor\
+A0 - Raindrop sensor\
+A1 - LDR\
 D4 - TX for UART\
 D0 - BMP_SDA\
 D1 - BMP_SCL\
