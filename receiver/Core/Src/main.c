@@ -50,8 +50,8 @@
 /* USER CODE BEGIN PV */
 uint8_t radioInitSuccess = 0;
 
-uint8_t bufRX[32] = {65, 1, 2, 3, 4}; // buffer for received data
-uint8_t bufLenRX = 32; // variable to store a length of received payload
+uint8_t bufRX[20] = {0}; // buffer for received data
+uint8_t bufLenRX = 20; // variable to store a length of received payload
 uint8_t pipeRX;
 
 char UARTbuf[256];
@@ -331,21 +331,7 @@ void receiveData(void){
 		}
 		*/
 
-		// none of these vars are needed, just here for debugging purposes
-		recChar = (char)bufRX[0];
-		charConfidence = bufRX[1]; // 1 or 0
-
-		Vbat = bufRX[2]; // somwhow make this a float lol
-
-		imgRow = bufRX[3];
-
-		for(int i = 0; i < 28; i++) charImg[imgRow][i] = bufRX[i + 4];
-
-		UARTbuf[0] = '\0';
-		for(int i = 0; i < 32; i++) sprintf(UARTbuf + strlen(UARTbuf), "%u ", bufRX[i]); // Add all values of bufRX into a buffer to send data, eparated by whitespace
-		sprintf(UARTbuf + strlen(UARTbuf), "\n"); // add a new line
-
-		HAL_UART_Transmit(&huart2, (uint8_t *)UARTbuf, strlen(UARTbuf), 100);
+		HAL_UART_Transmit(&huart2,(uint8_t *) bufRX, strlen(bufRX), 100);
 	}
 }
 

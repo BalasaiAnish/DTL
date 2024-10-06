@@ -60,8 +60,8 @@ all: main-build
 main-build: AudioAmplifier.elf secondary-outputs
 
 # Tool invocations
-AudioAmplifier.elf AudioAmplifier.map: $(OBJS) $(USER_OBJS) /Users/dhruvakashyap/Documents/EL/3rd\ Semester/AudioAmplifier/STM32L432KCUX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "AudioAmplifier.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/Users/dhruvakashyap/Documents/EL/3rd Semester/AudioAmplifier/STM32L432KCUX_FLASH.ld" --specs=nosys.specs -Wl,-Map="AudioAmplifier.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+AudioAmplifier.elf AudioAmplifier.map: $(OBJS) $(USER_OBJS) /home/bala/Desktop/College/DTL/Code/DTL/receiver/STM32L432KCUX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "AudioAmplifier.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/home/bala/Desktop/College/DTL/Code/DTL/receiver/STM32L432KCUX_FLASH.ld" --specs=nosys.specs -Wl,-Map="AudioAmplifier.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
