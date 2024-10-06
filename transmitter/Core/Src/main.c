@@ -32,7 +32,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+void radioSetup(void);
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -48,6 +48,8 @@ I2C_HandleTypeDef hi2c1;
 
 LPTIM_HandleTypeDef hlptim2;
 
+SPI_HandleTypeDef hspi3;
+
 TIM_HandleTypeDef htim2;
 
 UART_HandleTypeDef huart1;
@@ -58,6 +60,7 @@ uint16_t ldr_voltage=0,raindrops_voltage=0;
 
 // Buffer for transmission
 uint8_t transmit_buffer[20];
+uint8_t transmit_buffer_len = 20;
 
 // Read temperature and pressure from BMP180
 uint16_t u_temp = 0;
@@ -87,6 +90,7 @@ static void MX_I2C1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_LPTIM2_Init(void);
+static void MX_SPI3_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -135,6 +139,7 @@ int main(void)
   MX_TIM2_Init();
   MX_USART1_UART_Init();
   MX_LPTIM2_Init();
+  MX_SPI3_Init();
   /* USER CODE BEGIN 2 */
   HAL_LPTIM_TimeOut_Start_IT(&hlptim2,65535,19999);
   HAL_DHT11_Init(&dht, GPIOA, GPIO_PIN_2, &htim2);
@@ -175,7 +180,9 @@ int main(void)
 	transmit_buffer[18] = (uint8_t) (raindrops_voltage & 0x00FF);
 	transmit_buffer[19] = (uint8_t) ((raindrops_voltage & 0xFF00)>>8);
 
-	HAL_UART_Transmit(&huart1,transmit_buffer,20,1000);
+	nRF24_TransmitPacket(transmit_buffer,transmit_buffer_len);
+
+	//HAL_UART_Transmit(&huart1,transmit_buffer,20,1000);
 
 	//HAL_Delay(100);
 	// Not needed due to sleep
@@ -384,7 +391,7 @@ static void MX_LPTIM2_Init(void)
   /* USER CODE END LPTIM2_Init 1 */
   hlptim2.Instance = LPTIM2;
   hlptim2.Init.Clock.Source = LPTIM_CLOCKSOURCE_APBCLOCK_LPOSC;
-  hlptim2.Init.Clock.Prescaler = LPTIM_PRESCALER_DIV4;
+  hlptim2.Init.Clock.Prescaler = LPTIM_PRESCALER_DIV1;
   hlptim2.Init.Trigger.Source = LPTIM_TRIGSOURCE_SOFTWARE;
   hlptim2.Init.OutputPolarity = LPTIM_OUTPUTPOLARITY_HIGH;
   hlptim2.Init.UpdateMode = LPTIM_UPDATE_IMMEDIATE;
@@ -398,6 +405,46 @@ static void MX_LPTIM2_Init(void)
   /* USER CODE BEGIN LPTIM2_Init 2 */
 
   /* USER CODE END LPTIM2_Init 2 */
+
+}
+
+/**
+  * @brief SPI3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_SPI3_Init(void)
+{
+
+  /* USER CODE BEGIN SPI3_Init 0 */
+
+  /* USER CODE END SPI3_Init 0 */
+
+  /* USER CODE BEGIN SPI3_Init 1 */
+
+  /* USER CODE END SPI3_Init 1 */
+  /* SPI3 parameter configuration*/
+  hspi3.Instance = SPI3;
+  hspi3.Init.Mode = SPI_MODE_MASTER;
+  hspi3.Init.Direction = SPI_DIRECTION_2LINES;
+  hspi3.Init.DataSize = SPI_DATASIZE_4BIT;
+  hspi3.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi3.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi3.Init.NSS = SPI_NSS_SOFT;
+  hspi3.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi3.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi3.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi3.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi3.Init.CRCPolynomial = 7;
+  hspi3.Init.CRCLength = SPI_CRC_LENGTH_DATASIZE;
+  hspi3.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
+  if (HAL_SPI_Init(&hspi3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN SPI3_Init 2 */
+
+  /* USER CODE END SPI3_Init 2 */
 
 }
 
@@ -515,39 +562,27 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOH_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, CSN_Pin|CE_Pin|DHT_PIN_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET);
+  /*Configure GPIO pins : PA2 PA3 PA5 PA7
+                           PA11 PA12 PA15 */
+  GPIO_InitStruct.Pin = GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_5|GPIO_PIN_7
+                          |GPIO_PIN_11|GPIO_PIN_12|GPIO_PIN_15;
+  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PA2 */
-  GPIO_InitStruct.Pin = GPIO_PIN_2;
+  /*Configure GPIO pins : CSN_Pin CE_Pin DHT_PIN_Pin */
+  GPIO_InitStruct.Pin = CSN_Pin|CE_Pin|DHT_PIN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA3 PA4 PA5 PA6
-                           PA7 PA8 PA11 PA12
-                           PA15 */
-  GPIO_InitStruct.Pin = GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6
-                          |GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_11|GPIO_PIN_12
-                          |GPIO_PIN_15;
+  /*Configure GPIO pins : PB0 PB1 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : PB0 PB1 PB4 PB5 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_4|GPIO_PIN_5;
-  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : PB3 */
-  GPIO_InitStruct.Pin = GPIO_PIN_3;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PH3 */
@@ -561,6 +596,45 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void radioSetup(void){
+	// Set RF channel
+	nRF24_SetRFChannel(40);
+
+	// Set data rate
+	nRF24_SetDataRate(nRF24_DR_2Mbps);
+
+	// Set CRC scheme
+	nRF24_SetCRCScheme(nRF24_CRC_2byte);
+
+	// Set address width, its common for all pipes (RX and TX)
+	nRF24_SetAddrWidth(3);
+
+	// Configure RX PIPE
+	static const uint8_t nRF24_ADDR[] = {'E', 'S', 'B'};
+	nRF24_SetAddr(nRF24_PIPE1, nRF24_ADDR); // program address for pipe
+	nRF24_SetRXPipe(nRF24_PIPE1, nRF24_AA_ON, 10); // Auto-ACK: enabled, payload length: 10 bytes
+
+	// Set TX power for Auto-ACK (maximum, to ensure that transmitter will hear ACK reply)
+	nRF24_SetTXPower(nRF24_TXPWR_0dBm);
+
+	// Set operational mode (PRX == receiver)
+	nRF24_SetOperationalMode(nRF24_MODE_TX);
+
+	// Clear any pending IRQ flags
+	nRF24_ClearIRQFlags();
+
+	// Wake the transceiver
+	nRF24_SetPowerMode(nRF24_PWR_UP);
+
+	// Enable DPL
+	nRF24_SetDynamicPayloadLength(nRF24_DPL_ON);
+
+	nRF24_SetPayloadWithAck(1);
+
+		// Put the transceiver to the RX mode
+	nRF24_CE_H();
+}
+
 void HAL_LPTIM_CompareMatchCallback(LPTIM_HandleTypeDef *hlptim)
 {
   /* Timeout was reached, turn on LED3 */
