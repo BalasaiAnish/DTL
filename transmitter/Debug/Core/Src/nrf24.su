@@ -1,3 +1,5 @@
+../Core/Inc/support.h:15:20:nRF24_CE_L	8	static
+../Core/Inc/support.h:19:20:nRF24_CE_H	8	static
 ../Core/Inc/support.h:23:20:nRF24_CSN_L	8	static
 ../Core/Inc/support.h:27:20:nRF24_CSN_H	8	static
 ../Core/Inc/support.h:32:23:nRF24_LL_RW	32	static
@@ -40,3 +42,4 @@
 ../Core/Src/nrf24.c:495:9:nRF24_GetFeatures	8	static
 ../Core/Src/nrf24.c:498:6:nRF24_ActivateFeatures	8	static
 ../Core/Src/nrf24.c:504:6:nRF24_WriteAckPayload	16	static
+../Core/Src/nrf24.c:519:16:nRF24_TransmitPacket	24	static

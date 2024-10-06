@@ -56,10 +56,10 @@ TIM_HandleTypeDef htim2;
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
+extern nRF24_TXResult tx_res;
+
 uint8_t txBuf[32];
 uint8_t txBufLen = 32;
-
-extern nRF24_TXResult tx_res;
 
 static const uint8_t nRF24_ADDR2[] = { 0xE7, 0x1C, 0xE6 };
 
@@ -159,7 +159,7 @@ int main(void)
   nRF24_CE_L();
   radioCheck = nRF24_Check();
   radioSetup();
-  runRadio();
+  //runRadio();
 
   /* USER CODE END 2 */
 
@@ -197,20 +197,6 @@ int main(void)
 	transmit_buffer[19] = (uint8_t) ((raindrops_voltage & 0xFF00)>>8);
 
 	tx_res = nRF24_TransmitPacket(transmit_buffer, transmit_buffer_len);
-	switch (tx_res) {
-						case nRF24_TX_SUCCESS:
-							UART_SendStr("OK ");
-							break;
-						case nRF24_TX_TIMEOUT:
-							UART_SendStr("TIMEOUT ");
-							break;
-						case nRF24_TX_MAXRT:
-							UART_SendStr("MAX RETRANSMIT ");
-							break;
-						default:
-							UART_SendStr("ERROR ");
-							break;
-					}
 
 	//HAL_UART_Transmit(&huart1,transmit_buffer,20,1000);
 
@@ -392,7 +378,20 @@ static void MX_I2C1_Init(void)
     Error_Handler();
   }
 
-  /** Configure Digital filter
+  /** Configure Digital filter	switch (tx_res) {
+						case nRF24_TX_SUCCESS:
+							UART_SendStr("OK ");
+							break;
+						case nRF24_TX_TIMEOUT:
+							UART_SendStr("TIMEOUT ");
+							break;
+						case nRF24_TX_MAXRT:
+							UART_SendStr("MAX RETRANSMIT ");
+							break;
+						default:
+							UART_SendStr("ERROR ");
+							break;
+					}
   */
   if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK)
   {
@@ -671,61 +670,6 @@ void radioSetup(void){
 
 }
 
-nRF24_TXResult nRF24_TransmitPacket(uint8_t *pBuf, uint8_t length) {
-	volatile uint32_t wait = nRF24_WAIT_TIMEOUT;
-	volatile uint8_t status;
-
-	// Deassert the CE pin (in case if it still high)
-	nRF24_CE_L();
-
-	// Transfer a data from the specified buffer to the TX FIFO
-	nRF24_WritePayload(pBuf, length);
-
-	// Start a transmission by asserting CE pin (must be held at least 10us)
-	nRF24_CE_H();
-
-	// Poll the transceiver status register until one of the following flags will be set:
-	//   TX_DS  - means the packet has been transmitted
-	//   MAX_RT - means the maximum number of TX retransmits happened
-	// note: this solution is far from perfect, better to use IRQ instead of polling the status
-	do {
-		status = nRF24_GetStatus();
-		if (status & (nRF24_FLAG_TX_DS | nRF24_FLAG_MAX_RT)) {
-			break;
-		}
-	} while (wait--);
-
-	// Deassert the CE pin (Standby-II --> Standby-I)
-	nRF24_CE_L();
-
-	if (!wait) {
-		// Timeout
-		return nRF24_TX_TIMEOUT;
-	}
-
-	//UART_SendStr("[");
-	//UART_SendHex8(status);
-	//UART_SendStr("] ");
-
-	// Clear pending IRQ flags
-    nRF24_ClearIRQFlags();
-
-	if (status & nRF24_FLAG_MAX_RT) {
-		// Auto retransmit counter exceeds the programmed maximum limit (FIFO is not removed)
-		return nRF24_TX_MAXRT;
-	}
-
-	if (status & nRF24_FLAG_TX_DS) {
-		// Successful transmission
-		return nRF24_TX_SUCCESS;
-	}
-
-	// Some banana happens, a payload remains in the TX FIFO, flush it
-	nRF24_FlushTX();
-
-	return nRF24_TX_ERROR;
-}
-
 void testRadio(void) {
 	/*
 	UART_SendStr("ADDR#");
@@ -755,21 +699,24 @@ void testRadio(void) {
 	nRF24_TX_MAXRT
 	*/
 	tx_res = nRF24_TransmitPacket(txBuf, txBufLen);
+	uint8_t ok_str[] = "ok";
+	uint8_t time_str[] = "timeout";
+	uint8_t mret_str[] = "max retransmit";
+	uint8_t err_str[] = "error";
 	switch (tx_res) {
 		case nRF24_TX_SUCCESS:
-			UART_SendStr("OK");
+			HAL_UART_Transmit(&huart1,ok_str,sizeof(ok_str),100);
 			break;
 		case nRF24_TX_TIMEOUT:
-			UART_SendStr("TIMEOUT");
+			HAL_UART_Transmit(&huart1,time_str,sizeof(time_str),100);
 			break;
 		case nRF24_TX_MAXRT:
-			UART_SendStr("MAX RETRANSMIT");
+			HAL_UART_Transmit(&huart1,mret_str,sizeof(mret_str),100);
 			break;
 		default:
-			UART_SendStr("ERROR");
+			HAL_UART_Transmit(&huart1,err_str,sizeof(err_str),100);
 			break;
 	}
-	UART_SendStr("\r\n");
 }
 
 

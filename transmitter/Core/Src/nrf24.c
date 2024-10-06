@@ -511,6 +511,63 @@ void nRF24_WriteAckPayload(nRF24_RXResult pipe, char *payload, uint8_t length) {
 
 }
 
+// Function to transmit data packet
+// input:
+//   pBuf - pointer to the buffer with data to transmit
+//   length - length of the data buffer in bytes
+// return: one of nRF24_TX_xx values
+nRF24_TXResult nRF24_TransmitPacket(uint8_t *pBuf, uint8_t length) {
+	volatile uint32_t wait = nRF24_WAIT_TIMEOUT;
+	uint8_t status;
+
+	// Deassert the CE pin (in case if it still high)
+	nRF24_CE_L();
+
+	// Transfer a data from the specified buffer to the TX FIFO
+	nRF24_WritePayload(pBuf, length);
+
+	// Start a transmission by asserting CE pin (must be held at least 10us)
+	nRF24_CE_H();
+
+	// Poll the transceiver status register until one of the following flags will be set:
+	//   TX_DS  - means the packet has been transmitted
+	//   MAX_RT - means the maximum number of TX retransmits happened
+	// note: this solution is far from perfect, better to use IRQ instead of polling the status
+	do {
+		status = nRF24_GetStatus();
+		if (status & (nRF24_FLAG_TX_DS | nRF24_FLAG_MAX_RT)) {
+			break;
+		}
+	} while (wait--);
+
+	// Deassert the CE pin (Standby-II --> Standby-I)
+	nRF24_CE_L();
+
+	if (!wait) {
+		// Timeout
+		return nRF24_TX_TIMEOUT;
+	}
+
+	// Clear pending IRQ flags
+    nRF24_ClearIRQFlags();
+
+    if (status & nRF24_FLAG_MAX_RT) {
+    		// Auto retransmit counter exceeds the programmed maximum limit (FIFO is not removed)
+    		return nRF24_TX_MAXRT;
+	}
+
+	if (status & nRF24_FLAG_TX_DS) {
+		// Successful transmission
+		return nRF24_TX_SUCCESS;
+	}
+
+	// Some banana happens, a payload remains in the TX FIFO, flush it
+	nRF24_FlushTX();
+
+	return nRF24_TX_ERROR;
+}
+
+
 /*
 
 // Print nRF24L01+ current configuration (for debug purposes)

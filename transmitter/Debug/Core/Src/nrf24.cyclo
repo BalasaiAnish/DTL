@@ -1,3 +1,5 @@
+../Core/Inc/support.h:15:20:nRF24_CE_L	1
+../Core/Inc/support.h:19:20:nRF24_CE_H	1
 ../Core/Inc/support.h:23:20:nRF24_CSN_L	1
 ../Core/Inc/support.h:27:20:nRF24_CSN_H	1
 ../Core/Inc/support.h:32:23:nRF24_LL_RW	2
@@ -40,3 +42,4 @@
 ../Core/Src/nrf24.c:495:9:nRF24_GetFeatures	1
 ../Core/Src/nrf24.c:498:6:nRF24_ActivateFeatures	1
 ../Core/Src/nrf24.c:504:6:nRF24_WriteAckPayload	2
+../Core/Src/nrf24.c:519:16:nRF24_TransmitPacket	6

@@ -36,7 +36,7 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-
+// Result of packet transmission
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -79,7 +79,8 @@ void Error_Handler(void);
 #define NRF_MOSI_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
-
+void radioSetup(void);
+void testRadio(void);
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

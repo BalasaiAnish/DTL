@@ -78,6 +78,10 @@
 // Fake address to test transceiver presence (5 bytes long)
 #define nRF24_TEST_ADDR            "nRF24"
 
+// Timeout counter (depends on the CPU speed)
+// Used for not stuck waiting for IRQ
+#define nRF24_WAIT_TIMEOUT         (uint32_t)0x000FFFFF
+
 
 // Retransmit delay
 enum {
@@ -205,6 +209,13 @@ static const uint8_t nRF24_ADDR_REGS[7] = {
 		nRF24_REG_TX_ADDR
 };
 
+// Result of packet transmission
+typedef enum {
+	nRF24_TX_ERROR  = (uint8_t)0x00, // Unknown error
+	nRF24_TX_SUCCESS,                // Packet has been transmitted successfully
+	nRF24_TX_TIMEOUT,                // It was timeout during packet transmit
+	nRF24_TX_MAXRT                   // Transmit failed with maximum auto retransmit count
+} nRF24_TXResult;
 
 // Function prototypes
 void nRF24_Init(void);
@@ -243,6 +254,7 @@ void nRF24_WritePayload(uint8_t *pBuf, uint8_t length);
 void nRF24_WriteAckPayload(nRF24_RXResult pipe, char *payload, uint8_t length);
 nRF24_RXResult nRF24_ReadPayload(uint8_t *pBuf, uint8_t *length);
 nRF24_RXResult nRF24_ReadPayloadDpl(uint8_t *pBuf, uint8_t *length);
+nRF24_TXResult nRF24_TransmitPacket(uint8_t *pBuf, uint8_t length);
 
 #define nRF24_RX_ON()   nRF24_CE_H();
 #define nRF24_RX_OFF()  nRF24_CE_L();
