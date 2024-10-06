@@ -1,0 +1,3 @@
+../Core/Inc/support.h:15:20:nRF24_CE_L	1
+../Core/Inc/support.h:42:20:Delay_ms	1
+../Core/Src/radio_demo.c:189:6:runRadio	8

@@ -24,6 +24,7 @@
 #include "dht.h"
 #include "bmp.h"
 #include "nrf24.h"
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -58,8 +59,8 @@ UART_HandleTypeDef huart1;
 /* USER CODE BEGIN PV */
 extern nRF24_TXResult tx_res;
 
-uint8_t txBuf[32];
-uint8_t txBufLen = 32;
+uint8_t txBuf[20];
+uint8_t txBufLen = 20;
 
 static const uint8_t nRF24_ADDR2[] = { 0xE7, 0x1C, 0xE6 };
 
@@ -668,6 +669,25 @@ void radioSetup(void){
 	// Initialize the nRF24L01 to its default state
 	nRF24_Init();
 
+}
+
+void UART_SendChar(char b) {
+	HAL_UART_Transmit(&huart1, (uint8_t *) &b, 1, 200);
+}
+
+void UART_SendStr(char *string) {
+	HAL_UART_Transmit(&huart1, (uint8_t *) string, (uint16_t) strlen(string), 200);
+}
+
+void UART_SendInt(int32_t num) {
+	char str[10]; // 10 chars max for INT32_MAX
+	int i = 0;
+	if (num < 0) {
+		UART_SendChar('-');
+		num *= -1;
+	}
+	do str[i++] = (char) (num % 10 + '0'); while ((num /= 10) > 0);
+	for (i--; i >= 0; i--) UART_SendChar(str[i]);
 }
 
 void testRadio(void) {
