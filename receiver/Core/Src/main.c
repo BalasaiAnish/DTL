@@ -18,10 +18,16 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "spi.h"
+#include "usart.h"
+#include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "nrf24.h"
 
+#include "stdio.h"
+#include "string.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -40,61 +46,39 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-UART_HandleTypeDef huart1;
-UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
+uint8_t radioInitSuccess = 0;
 
+uint8_t bufRX[32] = {65, 1, 2, 3, 4}; // buffer for received data
+uint8_t bufLenRX = 32; // variable to store a length of received payload
+uint8_t pipeRX;
+
+char UARTbuf[256];
+uint8_t UARTbufLen = 5;
+
+char recChar; // received character
+uint8_t Vbat; // battery voltage
+uint8_t charConfidence; // boolean value depending on confidence of inference
+uint8_t imgRow; // row of image
+uint8_t charImg[28][28]; // image of written character
+
+uint8_t txBuf[32] = {0}; // demo
+uint8_t txSuccess = 10;
+
+uint32_t c = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-static void MX_GPIO_Init(void);
-static void MX_USART2_UART_Init(void);
-static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
-
+void testRadio(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint8_t buf[20] = {0};
-uint8_t test[10] = {"ok"};
-HAL_StatusTypeDef st;
-volatile uint8_t UARTcnt = 0;
-
-union{
-	uint8_t in[4];
-	float out;
-}temp, press, temp2, hum;
-
-union {
-	uint8_t in[2];
-	uint16_t out;
-}ldr, rain;
-
-
-
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-{
-    HAL_UART_Transmit(&huart2, buf, 20, 100);
-    HAL_UART_Receive_IT(&huart1, buf, 20);
-    UARTcnt++;
-
-    for(int i=0;i<4;i++)
-	{
-    	temp.in[i] = buf[i];
-		press.in[i] = buf[i+4];
-		temp2.in[i] = buf[i+8];
-		hum.in[i] = buf[i+12];
-	}
-
-    ldr.in[0] = buf[16];
-    ldr.in[1] = buf[17];
-
-    rain.in[0] = buf[18];
-	rain.in[1] = buf[19];
-}
+void radioSetup(void);
+void receiveData(void);
 /* USER CODE END 0 */
 
 /**
@@ -103,7 +87,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
   */
 int main(void)
 {
-
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
@@ -111,7 +94,8 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+
+	HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -127,18 +111,33 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART2_UART_Init();
-  MX_USART1_UART_Init();
+  MX_SPI3_Init();
   /* USER CODE BEGIN 2 */
-  HAL_UART_Receive_IT(&huart1, buf, 20);
+  nRF24_CE_L();
+  radioInitSuccess = nRF24_Check();
+
+  radioSetup();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  receiveData(); // also sends data via UART
+	  //testRadio();
+
+	  /*
+	  UARTbuf[0] = '\0';
+	  for(int i = 0; i < 32; i++) sprintf(UARTbuf + strlen(UARTbuf), "%u ", bufRX[i]); // Add all values of bufRX into a buffer to send data, eparated by whitespace
+	  UARTbuf[255] =  '\r';
+
+   	  HAL_UART_Transmit(&huart2, (uint8_t *)UARTbuf, 255, 100);
+   	  */
+
+   	  HAL_Delay(1);
+
     /* USER CODE END WHILE */
-	  //HAL_UART_Transmit(&huart2, test, 10, 10);
-	  HAL_Delay(1000);
 
     /* USER CODE BEGIN 3 */
   }
@@ -177,7 +176,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_MSI;
   RCC_OscInitStruct.PLL.PLLM = 1;
-  RCC_OscInitStruct.PLL.PLLN = 16;
+  RCC_OscInitStruct.PLL.PLLN = 40;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV7;
   RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV2;
   RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
@@ -195,7 +194,7 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK)
   {
     Error_Handler();
   }
@@ -205,107 +204,161 @@ void SystemClock_Config(void)
   HAL_RCCEx_EnableMSIPLLMode();
 }
 
-/**
-  * @brief USART1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USART1_UART_Init(void)
-{
-
-  /* USER CODE BEGIN USART1_Init 0 */
-
-  /* USER CODE END USART1_Init 0 */
-
-  /* USER CODE BEGIN USART1_Init 1 */
-
-  /* USER CODE END USART1_Init 1 */
-  huart1.Instance = USART1;
-  huart1.Init.BaudRate = 9600;
-  huart1.Init.WordLength = UART_WORDLENGTH_8B;
-  huart1.Init.StopBits = UART_STOPBITS_1;
-  huart1.Init.Parity = UART_PARITY_NONE;
-  huart1.Init.Mode = UART_MODE_TX_RX;
-  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
-  huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-  huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if (HAL_UART_Init(&huart1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USART1_Init 2 */
-
-  /* USER CODE END USART1_Init 2 */
-
-}
-
-/**
-  * @brief USART2 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USART2_UART_Init(void)
-{
-
-  /* USER CODE BEGIN USART2_Init 0 */
-
-  /* USER CODE END USART2_Init 0 */
-
-  /* USER CODE BEGIN USART2_Init 1 */
-
-  /* USER CODE END USART2_Init 1 */
-  huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
-  huart2.Init.WordLength = UART_WORDLENGTH_8B;
-  huart2.Init.StopBits = UART_STOPBITS_1;
-  huart2.Init.Parity = UART_PARITY_NONE;
-  huart2.Init.Mode = UART_MODE_TX_RX;
-  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
-  huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if (HAL_UART_Init(&huart2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USART2_Init 2 */
-
-  /* USER CODE END USART2_Init 2 */
-
-}
-
-/**
-  * @brief GPIO Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_GPIO_Init(void)
-{
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
-/* USER CODE BEGIN MX_GPIO_Init_1 */
-/* USER CODE END MX_GPIO_Init_1 */
-
-  /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOC_CLK_ENABLE();
-  __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOB_CLK_ENABLE();
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin : LD3_Pin */
-  GPIO_InitStruct.Pin = LD3_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(LD3_GPIO_Port, &GPIO_InitStruct);
-
-/* USER CODE BEGIN MX_GPIO_Init_2 */
-/* USER CODE END MX_GPIO_Init_2 */
-}
-
 /* USER CODE BEGIN 4 */
+/*
+void radioSetup(void){
+	// RX/TX disabled
+	nRF24_CE_L();
+
+	// Initialize the nRF24L01 to its default state
+	nRF24_Init();
+
+	// This is simple receiver with multiple RX pipes:
+	//   - pipe#0 address: "WBC"
+	//   - pipe#0 payload: 11 bytes
+	//   - pipe#1 address: '0xE7 0x1C 0xE3'
+	//   - pipe#1 payload: 5 bytes
+	//   - pipe#4 address: '0xE7 0x1C 0xE6' (this is pipe#1 address with different last byte)
+	//   - pipe#4 payload: 32 bytes (the maximum payload length)
+	//   - RF channel: 115 (2515MHz)
+	//   - data rate: 250kbps (minimum possible, to increase reception reliability)
+	//   - CRC scheme: 2 byte
+
+	// The transmitter sends packets of different length to the three different logical addresses,
+	// cycling them one after another, that packets comes to different pipes (0, 1 and 4)
+
+	// Disable ShockBurst for all RX pipes
+	//nRF24_DisableAA(0xFF);
+
+	// Set RF channel
+	nRF24_SetRFChannel(115);
+
+	// Set data rate
+	nRF24_SetDataRate(nRF24_DR_250kbps);
+
+	// Set CRC scheme
+	nRF24_SetCRCScheme(nRF24_CRC_2byte);
+
+	// Set address width, its common for all pipes (RX and TX)
+	nRF24_SetAddrWidth(3);
+	//nRF24_SetAddrWidth(5);
+	static const uint8_t nRF24_ADDR0[] = { 'W', 'B', 'C' };
+	nRF24_SetAddr(nRF24_PIPE0, nRF24_ADDR0); // program address for RX pipe #0
+	nRF24_SetRXPipe(nRF24_PIPE0, nRF24_AA_OFF, 11); // Auto-ACK: disabled, payload length: 11 bytes
+
+	// Configure RX PIPE#1
+	static const uint8_t nRF24_ADDR1[] = { 0xE7, 0x1C, 0xE3 };
+	nRF24_SetAddr(nRF24_PIPE1, nRF24_ADDR1); // program address for RX pipe #1
+	nRF24_SetRXPipe(nRF24_PIPE1, nRF24_AA_OFF, 5); // Auto-ACK: disabled, payload length: 5 bytes
+
+	// Configure RX PIPE#4
+	static const uint8_t nRF24_ADDR4[] = { 0xE6 };
+	nRF24_SetAddr(nRF24_PIPE4, nRF24_ADDR4); // program address for RX pipe #4
+	nRF24_SetRXPipe(nRF24_PIPE4, nRF24_AA_OFF, 32); // Auto-ACK: disabled, payload length: 32 bytes
+
+	// Set operational mode (PRX == receiver)
+	nRF24_SetOperationalMode(nRF24_MODE_RX);
+
+	// Wake the transceiver
+	nRF24_SetPowerMode(nRF24_PWR_UP);
+
+	// Put the transceiver to the RX mode
+	nRF24_CE_H();
+}
+*/
+void radioSetup(void){
+	// Set RF channel
+	nRF24_SetRFChannel(40);
+
+	// Set data rate
+	nRF24_SetDataRate(nRF24_DR_2Mbps);
+
+	// Set CRC scheme
+	nRF24_SetCRCScheme(nRF24_CRC_2byte);
+
+	// Set address width, its common for all pipes (RX and TX)
+	nRF24_SetAddrWidth(3);
+
+	// Configure RX PIPE
+	static const uint8_t nRF24_ADDR[] = {'E', 'S', 'B'};
+	nRF24_SetAddr(nRF24_PIPE1, nRF24_ADDR); // program address for pipe
+	nRF24_SetRXPipe(nRF24_PIPE1, nRF24_AA_ON, 10); // Auto-ACK: enabled, payload length: 10 bytes
+
+	// Set TX power for Auto-ACK (maximum, to ensure that transmitter will hear ACK reply)
+	nRF24_SetTXPower(nRF24_TXPWR_0dBm);
+
+	// Set operational mode (PRX == receiver)
+	nRF24_SetOperationalMode(nRF24_MODE_RX);
+
+	// Clear any pending IRQ flags
+	nRF24_ClearIRQFlags();
+
+	// Wake the transceiver
+	nRF24_SetPowerMode(nRF24_PWR_UP);
+
+	// Enable DPL
+	nRF24_SetDynamicPayloadLength(nRF24_DPL_ON);
+
+	nRF24_SetPayloadWithAck(1);
+
+		// Put the transceiver to the RX mode
+	nRF24_CE_H();
+}
+
+void receiveData(void){
+	if (!radioInitSuccess) return;
+
+	if (nRF24_GetStatus_RXFIFO() != nRF24_STATUS_RXFIFO_EMPTY) {
+
+		c++;
+		pipeRX = nRF24_ReadPayload(bufRX, &bufLenRX); // read a payload to buffer
+
+		nRF24_ClearIRQFlags(); // clear any pending IRQ bits
+
+		// now the buffer bufRX holds received data
+		// bufLenRX variable holds a length of received data
+
+		/*
+		 On the transmitter side
+		txBuf[0] = (uint8_t)writtenChar;
+		txBuf[1] = maxPred > THRESHOLD_NN_OUTPUT ? 1 : 0;
+		txBuf[2] = getBattery();
+
+		for(int i = 0; i < 28; i++) {
+			txBuf[3] = i;
+			for (int j = 0; j < 28; j++) txBuf[j + 4] = charImg[i][j];
+			nRF24_TransmitPacket(&txBuf[0], 32);
+		}
+		*/
+
+		// none of these vars are needed, just here for debugging purposes
+		recChar = (char)bufRX[0];
+		charConfidence = bufRX[1]; // 1 or 0
+
+		Vbat = bufRX[2]; // somwhow make this a float lol
+
+		imgRow = bufRX[3];
+
+		for(int i = 0; i < 28; i++) charImg[imgRow][i] = bufRX[i + 4];
+
+		UARTbuf[0] = '\0';
+		for(int i = 0; i < 32; i++) sprintf(UARTbuf + strlen(UARTbuf), "%u ", bufRX[i]); // Add all values of bufRX into a buffer to send data, eparated by whitespace
+		sprintf(UARTbuf + strlen(UARTbuf), "\n"); // add a new line
+
+		HAL_UART_Transmit(&huart2, (uint8_t *)UARTbuf, strlen(UARTbuf), 100);
+	}
+}
+
+void testRadio(void) {
+	for(int i = 0; i < 32; i++){
+		txBuf[i] = i*2;
+	}
+	nRF24_SetOperationalMode(nRF24_MODE_TX);
+
+	txSuccess = nRF24_TransmitPacket(txBuf, 32);
+
+	nRF24_SetOperationalMode(nRF24_MODE_RX);
+}
 
 /* USER CODE END 4 */
 

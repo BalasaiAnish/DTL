@@ -41,7 +41,8 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
-
+#define TX_CHANNEL 115
+#define RX_CHANNEL 114
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/
@@ -61,14 +62,22 @@ void Error_Handler(void);
 #define MCO_GPIO_Port GPIOA
 #define VCP_TX_Pin GPIO_PIN_2
 #define VCP_TX_GPIO_Port GPIOA
+#define CSN_Pin GPIO_PIN_8
+#define CSN_GPIO_Port GPIOA
+#define CE_Pin GPIO_PIN_11
+#define CE_GPIO_Port GPIOA
 #define SWDIO_Pin GPIO_PIN_13
 #define SWDIO_GPIO_Port GPIOA
 #define SWCLK_Pin GPIO_PIN_14
 #define SWCLK_GPIO_Port GPIOA
 #define VCP_RX_Pin GPIO_PIN_15
 #define VCP_RX_GPIO_Port GPIOA
-#define LD3_Pin GPIO_PIN_3
-#define LD3_GPIO_Port GPIOB
+#define RF_SCK_Pin GPIO_PIN_3
+#define RF_SCK_GPIO_Port GPIOB
+#define RF_MISO_Pin GPIO_PIN_4
+#define RF_MISO_GPIO_Port GPIOB
+#define RF_MOSI_Pin GPIO_PIN_5
+#define RF_MOSI_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 

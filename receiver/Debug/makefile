@@ -34,34 +34,34 @@ $(wildcard ../makefile.init) \
 $(wildcard ../makefile.targets) \
 
 
-BUILD_ARTIFACT_NAME := WeatherReceiver
+BUILD_ARTIFACT_NAME := AudioAmplifier
 BUILD_ARTIFACT_EXTENSION := elf
 BUILD_ARTIFACT_PREFIX :=
 BUILD_ARTIFACT := $(BUILD_ARTIFACT_PREFIX)$(BUILD_ARTIFACT_NAME)$(if $(BUILD_ARTIFACT_EXTENSION),.$(BUILD_ARTIFACT_EXTENSION),)
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
-WeatherReceiver.elf \
+AudioAmplifier.elf \
 
 MAP_FILES += \
-WeatherReceiver.map \
+AudioAmplifier.map \
 
 SIZE_OUTPUT += \
 default.size.stdout \
 
 OBJDUMP_LIST += \
-WeatherReceiver.list \
+AudioAmplifier.list \
 
 
 # All Target
 all: main-build
 
 # Main-build Target
-main-build: WeatherReceiver.elf secondary-outputs
+main-build: AudioAmplifier.elf secondary-outputs
 
 # Tool invocations
-WeatherReceiver.elf WeatherReceiver.map: $(OBJS) $(USER_OBJS) /Users/dhruvakashyap/STM32CubeIDE/workspace_1.14.0/WeatherReceiver/STM32L432KCUX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "WeatherReceiver.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/Users/dhruvakashyap/STM32CubeIDE/workspace_1.14.0/WeatherReceiver/STM32L432KCUX_FLASH.ld" --specs=nosys.specs -Wl,-Map="WeatherReceiver.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+AudioAmplifier.elf AudioAmplifier.map: $(OBJS) $(USER_OBJS) /Users/dhruvakashyap/Documents/EL/3rd\ Semester/AudioAmplifier/STM32L432KCUX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "AudioAmplifier.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/Users/dhruvakashyap/Documents/EL/3rd Semester/AudioAmplifier/STM32L432KCUX_FLASH.ld" --specs=nosys.specs -Wl,-Map="AudioAmplifier.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -70,14 +70,14 @@ default.size.stdout: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-WeatherReceiver.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "WeatherReceiver.list"
+AudioAmplifier.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "AudioAmplifier.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) WeatherReceiver.elf WeatherReceiver.list WeatherReceiver.map default.size.stdout
+	-$(RM) AudioAmplifier.elf AudioAmplifier.list AudioAmplifier.map default.size.stdout
 	-@echo ' '
 
 secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)
