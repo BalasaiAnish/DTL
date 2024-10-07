@@ -277,41 +277,43 @@ void radioSetup(void){
 */
 void radioSetup(void){
 	// Set RF channel
-	nRF24_SetRFChannel(40);
+	nRF24_DisableAA(0xFF);
 
-	// Set data rate
-	nRF24_SetDataRate(nRF24_DR_2Mbps);
+	    // Set RF channel
+	    nRF24_SetRFChannel(115);
 
-	// Set CRC scheme
-	nRF24_SetCRCScheme(nRF24_CRC_2byte);
+	    // Set data rate
+	    nRF24_SetDataRate(nRF24_DR_250kbps);
 
-	// Set address width, its common for all pipes (RX and TX)
-	nRF24_SetAddrWidth(3);
+	    // Set CRC scheme
+	    nRF24_SetCRCScheme(nRF24_CRC_2byte);
 
-	// Configure RX PIPE
-	static const uint8_t nRF24_ADDR[] = {'E', 'S', 'B'};
-	nRF24_SetAddr(nRF24_PIPE1, nRF24_ADDR); // program address for pipe
-	nRF24_SetRXPipe(nRF24_PIPE1, nRF24_AA_ON, 10); // Auto-ACK: enabled, payload length: 10 bytes
+	    // Set address width, its common for all pipes (RX and TX)
+	    nRF24_SetAddrWidth(3);
 
-	// Set TX power for Auto-ACK (maximum, to ensure that transmitter will hear ACK reply)
-	nRF24_SetTXPower(nRF24_TXPWR_0dBm);
+	    // Configure RX PIPE#0
+	    static const uint8_t nRF24_ADDR0[] = { 'W', 'B', 'C' };
+	    nRF24_SetAddr(nRF24_PIPE0, nRF24_ADDR0); // program address for RX pipe #0
+	    nRF24_SetRXPipe(nRF24_PIPE0, nRF24_AA_OFF, 11); // Auto-ACK: disabled, payload length: 11 bytes
 
-	// Set operational mode (PRX == receiver)
-	nRF24_SetOperationalMode(nRF24_MODE_RX);
+	    // Configure RX PIPE#1
+	    static const uint8_t nRF24_ADDR1[] = { 0xE7, 0x1C, 0xE3 };
+	    nRF24_SetAddr(nRF24_PIPE1, nRF24_ADDR1); // program address for RX pipe #1
+	    nRF24_SetRXPipe(nRF24_PIPE1, nRF24_AA_OFF, 5); // Auto-ACK: disabled, payload length: 5 bytes
 
-	// Clear any pending IRQ flags
-	nRF24_ClearIRQFlags();
+	    // Configure RX PIPE#4
+	    static const uint8_t nRF24_ADDR4[] = { 0xE6 };
+	    nRF24_SetAddr(nRF24_PIPE4, nRF24_ADDR4); // program address for RX pipe #4
+	    nRF24_SetRXPipe(nRF24_PIPE4, nRF24_AA_OFF, 20); // Auto-ACK: disabled, payload length: 32 bytes
 
-	// Wake the transceiver
-	nRF24_SetPowerMode(nRF24_PWR_UP);
+	    // Set operational mode (PRX == receiver)
+	    nRF24_SetOperationalMode(nRF24_MODE_RX);
 
-	// Enable DPL
-	nRF24_SetDynamicPayloadLength(nRF24_DPL_ON);
+	    // Wake the transceiver
+	    nRF24_SetPowerMode(nRF24_PWR_UP);
 
-	nRF24_SetPayloadWithAck(1);
-
-		// Put the transceiver to the RX mode
-	nRF24_CE_H();
+	    // Put the transceiver to the RX mode
+	    nRF24_CE_H();
 }
 
 void receiveData(void){

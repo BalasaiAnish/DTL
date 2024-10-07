@@ -333,6 +333,8 @@ void runRadio(void) {
     //static const uint8_t nRF24_ADDR1[] = { 0xE7, 0x1C, 0xE3 };
     static const uint8_t nRF24_ADDR2[] = { 0xE7, 0x1C, 0xE6 };
 
+    //nRF24_SetAddr(nRF24_PIPETX, nRF24_ADDR2);
+
     bool once = true;
 
     // The main loop

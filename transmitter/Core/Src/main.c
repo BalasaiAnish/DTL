@@ -142,7 +142,7 @@ int main(void)
   MX_SPI3_Init();
   /* USER CODE BEGIN 2 */
   HAL_LPTIM_TimeOut_Start_IT(&hlptim2,65535,19999);
-  HAL_DHT11_Init(&dht, GPIOA, GPIO_PIN_2, &htim2);
+  HAL_DHT11_Init(&dht, DHT_PIN_GPIO_Port, DHT_PIN_Pin, &htim2);
   read_calibration_data(&hi2c1,&bmp_calib_data);
 
   nRF24_CE_L();
@@ -187,13 +187,13 @@ int main(void)
 
 	tx_res = nRF24_TransmitPacket(transmit_buffer, transmit_buffer_len);
 
-	//HAL_UART_Transmit(&huart1,transmit_buffer,20,1000);
+	HAL_UART_Transmit(&huart1,transmit_buffer,20,1000);
 
 	//HAL_Delay(100);
 	// Not needed due to sleep
-	//HAL_Delay(500);
-	HAL_SuspendTick();
-	HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+	HAL_Delay(500);
+	//HAL_SuspendTick();
+	//HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
 
     /* USER CODE END WHILE */
 
@@ -281,32 +281,35 @@ void radioSetup(void){
 	// Disable ShockBurst for all RX pipes
 	nRF24_DisableAA(0xFF);
 
-	// Set RF channel
-	nRF24_SetRFChannel(115);
+	    // Set RF channel
+	    nRF24_SetRFChannel(115);
 
-	// Set data rate
-	nRF24_SetDataRate(nRF24_DR_250kbps);
+	    // Set data rate
+	    nRF24_SetDataRate(nRF24_DR_250kbps);
 
-	// Set CRC scheme
-	nRF24_SetCRCScheme(nRF24_CRC_2byte);
+	    // Set CRC scheme
+	    nRF24_SetCRCScheme(nRF24_CRC_2byte);
 
-	// Set address width, its common for all pipes (RX and TX)
-	nRF24_SetAddrWidth(3);
+	    // Set address width, its common for all pipes (RX and TX)
+	    nRF24_SetAddrWidth(3);
 
-	// Set TX power (maximum)
-	nRF24_SetTXPower(nRF24_TXPWR_0dBm);
+	    // Set TX power (maximum)
+	    nRF24_SetTXPower(nRF24_TXPWR_0dBm);
 
-	// Set operational mode (PTX == transmitter)
-	nRF24_SetOperationalMode(nRF24_MODE_TX);
+	    // Set operational mode (PTX == transmitter)
+	    nRF24_SetOperationalMode(nRF24_MODE_TX);
 
-	// Clear any pending IRQ flags
-	nRF24_ClearIRQFlags();
+	    // Clear any pending IRQ flags
+	    nRF24_ClearIRQFlags();
 
-	// Wake the transceiver
-	nRF24_SetPowerMode(nRF24_PWR_UP);
+	    // Wake the transceiver
+	    nRF24_SetPowerMode(nRF24_PWR_UP);
 
-	// Initialize the nRF24L01 to its default state
-	nRF24_Init();
+	    //static const uint8_t nRF24_ADDR0[] = { 'W', 'B', 'C' };
+	    //static const uint8_t nRF24_ADDR1[] = { 0xE7, 0x1C, 0xE3 };
+	    static const uint8_t nRF24_ADDR2[] = { 0xE7, 0x1C, 0xE6 };
+
+	    nRF24_SetAddr(nRF24_PIPETX, nRF24_ADDR2);
 
 }
 
