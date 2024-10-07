@@ -48,6 +48,10 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+uint8_t rx_buffer[20]={0};
+uint8_t tx_buffer[20]={0};
+
+
 uint8_t radioInitSuccess = 0;
 
 uint8_t bufRX[20] = {0}; // buffer for received data
@@ -118,9 +122,6 @@ int main(void)
   radioInitSuccess = nRF24_Check();
 
   radioSetup();
-
-  uint8_t rx_buffer[20]={0};
-  uint8_t tx_buffer[20]={0};
 
   /* USER CODE END 2 */
 
