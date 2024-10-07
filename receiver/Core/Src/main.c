@@ -112,11 +112,15 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   MX_SPI3_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
   nRF24_CE_L();
   radioInitSuccess = nRF24_Check();
 
   radioSetup();
+
+  uint8_t rx_buffer[20]={0};
+  uint8_t tx_buffer[20]={0};
 
   /* USER CODE END 2 */
 
@@ -134,6 +138,10 @@ int main(void)
 
    	  HAL_UART_Transmit(&huart2, (uint8_t *)UARTbuf, 255, 100);
    	  */
+
+	  HAL_UART_Receive(&huart1,rx_buffer,20,100);
+
+	  HAL_UART_Transmit(&huart2,tx_buffer,20,100);
 
    	  HAL_Delay(1);
 
