@@ -80,7 +80,7 @@
 
 // Timeout counter (depends on the CPU speed)
 // Used for not stuck waiting for IRQ
-#define nRF24_WAIT_TIMEOUT         (uint32_t)0x000FFFFF
+#define nRF24_WAIT_TIMEOUT         (uint32_t)0x00000FFF
 
 
 // Retransmit delay

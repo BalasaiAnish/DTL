@@ -67,8 +67,8 @@ uint32_t analog_vals[2] = {0};
 uint16_t ldr_voltage=0,raindrops_voltage=0;
 
 // Buffer for transmission
-uint8_t transmit_buffer[20];
-uint8_t transmit_buffer_len = 20;
+uint8_t transmit_buffer[32];
+uint8_t transmit_buffer_len = 32;
 
 // Read temperature and pressure from BMP180
 uint16_t u_temp = 0;
@@ -191,9 +191,9 @@ int main(void)
 
 	//HAL_Delay(100);
 	// Not needed due to sleep
-	HAL_Delay(500);
-	//HAL_SuspendTick();
-	//HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+	//HAL_Delay(500);
+	HAL_SuspendTick();
+	HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
 
     /* USER CODE END WHILE */
 
