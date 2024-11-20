@@ -54,23 +54,25 @@ uint8_t tx_buffer[20]={0};
 
 uint8_t radioInitSuccess = 0;
 
-uint8_t bufRX[20] = {0}; // buffer for received data
-uint8_t bufLenRX = 20; // variable to store a length of received payload
+uint8_t bufRX[32] = {0}; // buffer for received data
+uint8_t bufLenRX = 32; // variable to store a length of received payload
 uint8_t pipeRX;
 
 char UARTbuf[256];
 uint8_t UARTbufLen = 5;
 
-char recChar; // received character
-uint8_t Vbat; // battery voltage
-uint8_t charConfidence; // boolean value depending on confidence of inference
-uint8_t imgRow; // row of image
-uint8_t charImg[28][28]; // image of written character
-
 uint8_t txBuf[32] = {0}; // demo
 uint8_t txSuccess = 10;
 
 uint32_t c = 0;
+
+union
+{
+	float f_val;
+	uint8_t f_val_buffer[4];
+}temp_buffer,press_buffer,dht_temp_buffer,dht_hum_buffer;
+
+uint16_t ldr_voltage=0,raindrops_voltage=0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -214,67 +216,6 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-/*
-void radioSetup(void){
-	// RX/TX disabled
-	nRF24_CE_L();
-
-	// Initialize the nRF24L01 to its default state
-	nRF24_Init();
-
-	// This is simple receiver with multiple RX pipes:
-	//   - pipe#0 address: "WBC"
-	//   - pipe#0 payload: 11 bytes
-	//   - pipe#1 address: '0xE7 0x1C 0xE3'
-	//   - pipe#1 payload: 5 bytes
-	//   - pipe#4 address: '0xE7 0x1C 0xE6' (this is pipe#1 address with different last byte)
-	//   - pipe#4 payload: 32 bytes (the maximum payload length)
-	//   - RF channel: 115 (2515MHz)
-	//   - data rate: 250kbps (minimum possible, to increase reception reliability)
-	//   - CRC scheme: 2 byte
-
-	// The transmitter sends packets of different length to the three different logical addresses,
-	// cycling them one after another, that packets comes to different pipes (0, 1 and 4)
-
-	// Disable ShockBurst for all RX pipes
-	//nRF24_DisableAA(0xFF);
-
-	// Set RF channel
-	nRF24_SetRFChannel(115);
-
-	// Set data rate
-	nRF24_SetDataRate(nRF24_DR_250kbps);
-
-	// Set CRC scheme
-	nRF24_SetCRCScheme(nRF24_CRC_2byte);
-
-	// Set address width, its common for all pipes (RX and TX)
-	nRF24_SetAddrWidth(3);
-	//nRF24_SetAddrWidth(5);
-	static const uint8_t nRF24_ADDR0[] = { 'W', 'B', 'C' };
-	nRF24_SetAddr(nRF24_PIPE0, nRF24_ADDR0); // program address for RX pipe #0
-	nRF24_SetRXPipe(nRF24_PIPE0, nRF24_AA_OFF, 11); // Auto-ACK: disabled, payload length: 11 bytes
-
-	// Configure RX PIPE#1
-	static const uint8_t nRF24_ADDR1[] = { 0xE7, 0x1C, 0xE3 };
-	nRF24_SetAddr(nRF24_PIPE1, nRF24_ADDR1); // program address for RX pipe #1
-	nRF24_SetRXPipe(nRF24_PIPE1, nRF24_AA_OFF, 5); // Auto-ACK: disabled, payload length: 5 bytes
-
-	// Configure RX PIPE#4
-	static const uint8_t nRF24_ADDR4[] = { 0xE6 };
-	nRF24_SetAddr(nRF24_PIPE4, nRF24_ADDR4); // program address for RX pipe #4
-	nRF24_SetRXPipe(nRF24_PIPE4, nRF24_AA_OFF, 32); // Auto-ACK: disabled, payload length: 32 bytes
-
-	// Set operational mode (PRX == receiver)
-	nRF24_SetOperationalMode(nRF24_MODE_RX);
-
-	// Wake the transceiver
-	nRF24_SetPowerMode(nRF24_PWR_UP);
-
-	// Put the transceiver to the RX mode
-	nRF24_CE_H();
-}
-*/
 void radioSetup(void){
 	// Set RF channel
 	nRF24_DisableAA(0xFF);
@@ -304,7 +245,7 @@ void radioSetup(void){
 	    // Configure RX PIPE#4
 	    static const uint8_t nRF24_ADDR4[] = { 0xE6 };
 	    nRF24_SetAddr(nRF24_PIPE4, nRF24_ADDR4); // program address for RX pipe #4
-	    nRF24_SetRXPipe(nRF24_PIPE4, nRF24_AA_OFF, 20); // Auto-ACK: disabled, payload length: 32 bytes
+	    nRF24_SetRXPipe(nRF24_PIPE4, nRF24_AA_OFF, 32); // Auto-ACK: disabled, payload length: 32 bytes
 
 	    // Set operational mode (PRX == receiver)
 	    nRF24_SetOperationalMode(nRF24_MODE_RX);
@@ -331,18 +272,32 @@ void receiveData(void){
 
 		/*
 		 On the transmitter side
-		txBuf[0] = (uint8_t)writtenChar;
-		txBuf[1] = maxPred > THRESHOLD_NN_OUTPUT ? 1 : 0;
-		txBuf[2] = getBattery();
-
-		for(int i = 0; i < 28; i++) {
-			txBuf[3] = i;
-			for (int j = 0; j < 28; j++) txBuf[j + 4] = charImg[i][j];
-			nRF24_TransmitPacket(&txBuf[0], 32);
+	    for(int i=0;i<4;i++)
+		{
+			transmit_buffer[i] = temp_buffer.f_val_buffer[i];
+			transmit_buffer[i+4] = press_buffer.f_val_buffer[i];
+			transmit_buffer[i+8] = dht_temp_buffer.f_val_buffer[i];
+			transmit_buffer[i+12] = dht_hum_buffer.f_val_buffer[i];
 		}
-		*/
 
-		HAL_UART_Transmit(&huart2,(uint8_t *) bufRX, strlen(bufRX), 100);
+		transmit_buffer[16] = (uint8_t) (ldr_voltage & 0x00FF);
+		transmit_buffer[17] = (uint8_t) ((ldr_voltage & 0xFF00)>>8);
+
+		transmit_buffer[18] = (uint8_t) (raindrops_voltage & 0x00FF);
+		transmit_buffer[19] = (uint8_t) ((raindrops_voltage & 0xFF00)>>8);
+	   */
+
+		for(int i = 0; i < 4; i++){
+			temp_buffer.f_val_buffer[i] = bufRX[i];
+			press_buffer.f_val_buffer[i] = bufRX[i+4];
+			dht_temp_buffer.f_val_buffer[i] = bufRX[i+8];
+			dht_hum_buffer.f_val_buffer[i] = bufRX[i+12];
+		}
+
+		ldr_voltage = (uint16_t)bufRX[16] | ((uint16_t)bufRX[17] << 8);
+		raindrops_voltage = (uint16_t)bufRX[18] | ((uint16_t)bufRX[19] << 8);
+
+		HAL_UART_Transmit(&huart2,(uint8_t *) bufRX, 20, 100);
 	}
 }
 
