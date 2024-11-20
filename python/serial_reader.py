@@ -2,7 +2,6 @@ import serial
 import time
 import struct
 import csv
-from datetime import datetime
 
 ser = serial.Serial('/dev/ttyACM0',9600,8,'N',1)
 
@@ -20,26 +19,6 @@ if ser.is_open():
     ldr_voltage = struct.unpack('<h',receive_buffer[16:18])*3.3/4095
     raindrops_voltage = struct.unpack('<h',receive_buffer[18:20])*3.3/4095
 
-    if(ldr_voltage>2.2):
-        brightness = "Sunny"
-
-    elif(ldr_voltage>1.1):
-        brightness = "Partly cloudy"
-
-    else:
-        brightness = "Cloudy"
-
-    if(raindrops_voltage>2.2):
-        rain = "Rainy"
-
-    elif(raindrops_voltage>1.1):
-        rain = "Drizzling"
-
-    else:
-        rain = "Clear"
-
-    timestamp = str(datetime.now())
-
     with open('data.csv', 'a', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow([timestamp,bmp_temp,bmp_press,dht_temp,dht_hum,brightness,rain])
+        writer.writerow([bmp_temp,bmp_press,dht_temp,dht_hum,ldr_voltage,raindrops_voltage])
